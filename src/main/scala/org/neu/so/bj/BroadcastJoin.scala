@@ -6,9 +6,6 @@ import org.apache.spark.util.SizeEstimator
 
 import scala.reflect.ClassTag
 
-/**
-  * Referenced from: https://gist.github.com/mkolod/0662ae3e480e0a8eceda
-  */
 class BroadcastJoin(sc: SparkContext) extends config {
 
   /**
@@ -20,67 +17,78 @@ class BroadcastJoin(sc: SparkContext) extends config {
     * perform custom broadcast join by grouping and broadcasting smaller sized RDD for performing map-side join
     * on larger RDD.
     */
-  def join[K: ClassTag, A: ClassTag, B: ClassTag](left: RDD[(K, A)], right: RDD[(K, B)]): RDD[(K, (A, B))] = {
-    if(canBroadcast(left)) {
-      println("left")
-      broadcastJoin(left, right)
+  def join[ K: ClassTag, A: ClassTag, B: ClassTag ](left: RDD[ (K, A) ],
+                                                    right: RDD[ (K, B) ],
+                                                    rddSizeEstimator: RDDSizeEstimator): RDD[ (K, (A, B)) ] = {
+    try {
+      if (canBroadcast(left, rddSizeEstimator)) {
+        println("left")
+        return broadcastJoin(left, right)
+      }
+      else if (canBroadcast(right, rddSizeEstimator)) {
+        println("right")
+        return broadcastJoin(right, left).mapValues(_.swap)
+      }
     }
-    else if(canBroadcast(right)) {
-      println("right")
-      broadcastJoin(right, left).mapValues(_.swap)
+    catch {
+      case _: java.lang.Exception => println("Estimated small is not small enough to collect in memory.")
     }
-    else {
-      println("all")
-      left.join(right)
-    }
+    println("all")
+    sc.parallelize(left.take(1)).join(sc.parallelize(right.take(1)))
   }
 
   /**
     * Return true iff estimated size of `rdd` is less than or equal to `autoBroadcastJoinThreshold`.
+    * Referenced from: https://gist.github.com/mkolod/0662ae3e480e0a8eceda
     */
-  private[this] def canBroadcast[K: ClassTag, E: ClassTag](rdd: RDD[(K, E)]): Boolean = {
-    val size = getTotalSize(rdd)
+  private[ this ] def canBroadcast[ K: ClassTag, E: ClassTag ](rdd: RDD[ (K, E) ],
+                                                               rddSizeEstimator: RDDSizeEstimator): Boolean = {
+    val size = rddSizeEstimator.estimate(rdd)
     println("size:" + size)
     size <= autoBroadcastJoinThreshold
   }
+
+  //  /**
+  //    * Returns estimated size of `rdd` by using SizeEstimator for collected single row and multiplying it with
+  //    * total number of rows.
+  //    */
+  //  private[ this ] def getTotalSize[ T: ClassTag ](rdd: RDD[ T ]): Long = {
+  //    val totalRows = rdd.count()
+  //    println("Total rows: " + totalRows)
+  //    val rowSize: Long = SizeEstimator.estimate(Seq(rdd.take(1)).map(_.asInstanceOf[ AnyRef ]))
+  //    totalRows * rowSize
+  //  }
 
   /**
     * Returns an RDD containing all pairs of elements with matching keys in `small` and `large`. It broadcasts
     * `small`, performs map-side join at each node with flatMap to emit each pair of values for each key.
     */
-  private[this] def broadcastJoin[K: ClassTag, C: ClassTag, D: ClassTag](small: RDD[(K, C)],
-                                                                         large: RDD[(K, D)]): RDD[(K, (C, D))] = {
+  @throws[ java.lang.OutOfMemoryError ]
+  private[ this ] def broadcastJoin[ K: ClassTag, C: ClassTag, D: ClassTag ](small: RDD[ (K, C) ],
+                                                                             large: RDD[ (K, D) ])
+  : RDD[ (K, (C, D)) ] = {
     val s = sc.broadcast(group(small))
     large
       .flatMap {
-        case(kl: K, vl: D) if s.value.contains(kl) =>
-           s.value(kl).flatMap {
-             case(vs: C) => Some((kl, (vs, vl)))
-           }
+        case (kl: K, vl: D) if s.value.contains(kl) =>
+          s.value(kl).flatMap {
+            case (vs: C) => Some((kl, (vs, vl)))
+          }
         case _ => None
       }
   }
 
   /**
     * Return a Scala immutable Map by collecting `rdd` and grouping values by keys into an array of values.
+    * Referenced from: https://gist.github.com/mkolod/0662ae3e480e0a8eceda
     */
-  private[this] def group[K: ClassTag, E: ClassTag](rdd: RDD[(K, E)]): Map[K, Array[E]] = {
+  @throws[ java.lang.OutOfMemoryError ]
+  private[ this ] def group[ K: ClassTag, E: ClassTag ](rdd: RDD[ (K, E) ]): Map[ K, Array[ E ] ] = {
     rdd
       .collect
       .groupBy(_._1)
       .map {
-        case(k, kv) => (k, kv.map(_._2))
+        case (k, kv) => (k, kv.map(_._2))
       }
-  }
-
-  /**
-    * Returns estimated size of `rdd` by using SizeEstimator for collected single row and multiplying it with
-    * total number of rows.
-    */
-  private[this] def getTotalSize[T: ClassTag](rdd: RDD[T]): Long = {
-    val totalRows = rdd.count()
-    println("Total rows: " + totalRows)
-    val rowSize: Long = SizeEstimator.estimate(Seq(rdd.take(1)).map(_.asInstanceOf[AnyRef]))
-    totalRows * rowSize
   }
 }
