@@ -2,12 +2,13 @@ package org.neu.so.bj
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.util.SizeEstimator
 
 import scala.reflect.ClassTag
 
+/**
+  * @author Tirthraj
+  */
 class BroadcastJoin(sc: SparkContext) extends config {
-
   /**
     * Return an RDD containing all pairs of elements with matching keys in `left` and `right`. Each
     * pair of elements will be returned as a (k, (v1, v2)) tuple, where (k, v1) is in `left` and
@@ -47,17 +48,6 @@ class BroadcastJoin(sc: SparkContext) extends config {
     println("size:" + size)
     size <= autoBroadcastJoinThreshold
   }
-
-  //  /**
-  //    * Returns estimated size of `rdd` by using SizeEstimator for collected single row and multiplying it with
-  //    * total number of rows.
-  //    */
-  //  private[ this ] def getTotalSize[ T: ClassTag ](rdd: RDD[ T ]): Long = {
-  //    val totalRows = rdd.count()
-  //    println("Total rows: " + totalRows)
-  //    val rowSize: Long = SizeEstimator.estimate(Seq(rdd.take(1)).map(_.asInstanceOf[ AnyRef ]))
-  //    totalRows * rowSize
-  //  }
 
   /**
     * Returns an RDD containing all pairs of elements with matching keys in `small` and `large`. It broadcasts

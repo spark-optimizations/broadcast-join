@@ -6,6 +6,9 @@ import org.apache.spark.sql.SparkSession
 
 import scala.reflect.ClassTag
 
+/**
+  * @author Tirthraj
+  */
 object BroadcastJoinSuite {
   val ss: SparkSession = createSparkSession()
   val sc: SparkContext = createSparkContext()
@@ -97,5 +100,3 @@ object BroadcastJoinSuite {
     )
   }
 }
-
-object myEstimator

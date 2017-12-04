@@ -5,6 +5,9 @@ import org.apache.spark.util.SizeEstimator
 
 import scala.reflect.ClassTag
 
+/**
+  * @author Tirthraj
+  */
 trait RDDSizeEstimator {
   def estimate[ T: ClassTag ](rdd: RDD[ T ]): Long = {
     getTotalSize(rdd)
