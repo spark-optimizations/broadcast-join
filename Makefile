@@ -2,7 +2,7 @@ OUT_ROOT=out
 CLASSES_PATH=${OUT_ROOT}/classes
 ARTIFACTS_PATH=${OUT_ROOT}/artifacts
 
-JAR_NAME=${ARTIFACTS_PATH}/build-plugin.jar
+JAR_NAME=${ARTIFACTS_PATH}/broadcast-join.jar
 RESOURCES_PATH=src/main/resources
 LIB_PATH=lib
 
