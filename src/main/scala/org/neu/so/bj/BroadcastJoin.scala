@@ -1,5 +1,7 @@
 package org.neu.so.bj
 
+import java.io.{FileWriter, PrintWriter}
+
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
@@ -21,18 +23,13 @@ class BroadcastJoin(sc: SparkContext) extends config {
   def join[ K: ClassTag, A: ClassTag, B: ClassTag ](left: RDD[ (K, A) ],
                                                     right: RDD[ (K, B) ],
                                                     rddSizeEstimator: RDDSizeEstimator): RDD[ (K, (A, B)) ] = {
-    try {
-      if (canBroadcast(left, rddSizeEstimator)) {
-        println("left")
-        return broadcastJoin(left, right)
-      }
-      else if (canBroadcast(right, rddSizeEstimator)) {
-        println("right")
-        return broadcastJoin(right, left).mapValues(_.swap)
-      }
+    if (canBroadcast(left, rddSizeEstimator)) {
+      println("left")
+      return broadcastJoin(left, right)
     }
-    catch {
-      case _: java.lang.Exception => println("Estimated small is not small enough to collect in memory.")
+    else if (canBroadcast(right, rddSizeEstimator)) {
+      println("right")
+      return broadcastJoin(right, left).mapValues(_.swap)
     }
     println("all")
     sc.parallelize(left.take(1)).join(sc.parallelize(right.take(1)))
@@ -44,8 +41,9 @@ class BroadcastJoin(sc: SparkContext) extends config {
     */
   private[ this ] def canBroadcast[ K: ClassTag, E: ClassTag ](rdd: RDD[ (K, E) ],
                                                                rddSizeEstimator: RDDSizeEstimator): Boolean = {
+    val startTime = System.currentTimeMillis
     val size = rddSizeEstimator.estimate(rdd)
-    println("size:" + size)
+    dumpStat((System.currentTimeMillis - startTime) / 1000f)
     size <= autoBroadcastJoinThreshold
   }
 
@@ -53,7 +51,6 @@ class BroadcastJoin(sc: SparkContext) extends config {
     * Returns an RDD containing all pairs of elements with matching keys in `small` and `large`. It broadcasts
     * `small`, performs map-side join at each node with flatMap to emit each pair of values for each key.
     */
-  @throws[ java.lang.OutOfMemoryError ]
   private[ this ] def broadcastJoin[ K: ClassTag, C: ClassTag, D: ClassTag ](small: RDD[ (K, C) ],
                                                                              large: RDD[ (K, D) ])
   : RDD[ (K, (C, D)) ] = {
@@ -72,7 +69,6 @@ class BroadcastJoin(sc: SparkContext) extends config {
     * Return a Scala immutable Map by collecting `rdd` and grouping values by keys into an array of values.
     * Referenced from: https://gist.github.com/mkolod/0662ae3e480e0a8eceda
     */
-  @throws[ java.lang.OutOfMemoryError ]
   private[ this ] def group[ K: ClassTag, E: ClassTag ](rdd: RDD[ (K, E) ]): Map[ K, Array[ E ] ] = {
     rdd
       .collect
@@ -80,5 +76,11 @@ class BroadcastJoin(sc: SparkContext) extends config {
       .map {
         case (k, kv) => (k, kv.map(_._2))
       }
+  }
+
+  private[ this ] def dumpStat(s: Float): Unit = {
+    val pw = new PrintWriter(new FileWriter("output/stats/sizeEstimation.txt", true))
+    pw.write(s.toString + ";")
+    pw.close()
   }
 }

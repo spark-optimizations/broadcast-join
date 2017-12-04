@@ -1,5 +1,7 @@
 package org.neu.so.bj
 
+import java.io.{FileWriter, PrintWriter}
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.SizeEstimator
 
@@ -19,8 +21,18 @@ trait RDDSizeEstimator {
     */
   private[ this ] def getTotalSize[ T: ClassTag ](rdd: RDD[ T ]): Long = {
     val totalRows = rdd.count()
-    println("Total rows: " + totalRows)
-    val rowSize: Long = SizeEstimator.estimate(Seq(rdd.take(1)).map(_.asInstanceOf[ AnyRef ]))
-    totalRows * rowSize
+    val partitionWiseRowSize: Array[ Long ] = getPartitionWiseRowSize(rdd)
+    val avgRowSize: Long = (partitionWiseRowSize.sum / partitionWiseRowSize.length).ceil.toLong
+    totalRows * avgRowSize
+  }
+
+  private[ this ] def getPartitionWiseRowSize[ T: ClassTag ](rdd: RDD[ T ]): Array[ Long ] = {
+    rdd
+      .mapPartitions {
+        iterator =>
+          val row = iterator.take(1).toList
+          Seq(SizeEstimator.estimate(row.map(_.asInstanceOf[ AnyRef ]))).iterator
+      }
+      .collect()
   }
 }
