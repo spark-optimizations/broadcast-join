@@ -2,8 +2,10 @@ package org.neu.so.bj.util
 
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
-import org.neu.so.bj.BroadcastJoinSuite.ss
 
+/**
+  * @author Tirthraj
+  */
 object SparkUtil {
   def createSparkSession(): SparkSession = {
     SparkSession

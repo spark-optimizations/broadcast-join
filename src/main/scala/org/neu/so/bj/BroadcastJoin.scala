@@ -11,6 +11,7 @@ import scala.reflect.ClassTag
   * @author Tirthraj
   */
 class BroadcastJoin(sc: SparkContext) extends config {
+  var statsPath: String = ""
   /**
     * Return an RDD containing all pairs of elements with matching keys in `left` and `right`. Each
     * pair of elements will be returned as a (k, (v1, v2)) tuple, where (k, v1) is in `left` and
@@ -24,15 +25,15 @@ class BroadcastJoin(sc: SparkContext) extends config {
                                                     right: RDD[ (K, B) ],
                                                     rddSizeEstimator: RDDSizeEstimator): RDD[ (K, (A, B)) ] = {
     if (canBroadcast(left, rddSizeEstimator)) {
-      println("left")
+      println("\t\t--- left ---")
       return broadcastJoin(left, right)
     }
     else if (canBroadcast(right, rddSizeEstimator)) {
-      println("right")
+      println("\t\t--- right ---")
       return broadcastJoin(right, left).mapValues(_.swap)
     }
-    println("all")
-    sc.parallelize(left.take(1)).join(sc.parallelize(right.take(1)))
+    println("\t\t--- shuffle ---")
+    left.join(right)
   }
 
   /**
@@ -79,8 +80,10 @@ class BroadcastJoin(sc: SparkContext) extends config {
   }
 
   private[ this ] def dumpStat(s: Float): Unit = {
-    val pw = new PrintWriter(new FileWriter("output/stats/sizeEstimation.txt", true))
-    pw.write(s.toString + ";")
-    pw.close()
+    if (!statsPath.equals("")) {
+      val pw = new PrintWriter(new FileWriter(statsPath, true))
+      pw.write(s.toString + "\n")
+      pw.close()
+    }
   }
 }

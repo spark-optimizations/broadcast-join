@@ -17,10 +17,10 @@ object BroadcastJoinSuite {
   def main(args: Array[ String ]): Unit = {
     val testData = fetchTestData(args(0) + "similar_artists.csv")
     val smallRDD = extractSmallRDD(testData)
-    broadcastJoinExec(testData, smallRDD, args(1) + "bj_output")
+    broadcastJoinExec(testData, smallRDD, args(1) + "bj_output", "bj_output")
     dataframeJoinExec(testData, smallRDD, args(1) + "df_output")
-    normalJoinExec(testData, smallRDD, args(1) + "normal_rdd_output")
-    broadcastJoinExec(testData, testData, args(1) + "big_broadcast_output")
+    normalJoinExec(testData, smallRDD, args(1) + "shuffle_output")
+    broadcastJoinExec(testData, testData, args(1) + "big_broadcast_output", "big_broadcast_output")
     normalJoinExec(testData, testData, args(1) + "big_normal_output")
   }
 
@@ -38,8 +38,10 @@ object BroadcastJoinSuite {
   }
 
   def broadcastJoinExec[ K: ClassTag, V: ClassTag ](rdd: RDD[ (K, V) ], smallRDD: RDD[ (K, V) ],
-                                                    outputPath: String): Unit = {
+                                                    outputPath: String,
+                                                    statsFile: String): Unit = {
     val bj = new BroadcastJoin(sc)
+    bj.statsPath = "output/" + statsFile
     TestUtil.timeBlock(
       bj.join(rdd, smallRDD, new RDDSizeEstimator {})
         .coalesce(1, shuffle = false)

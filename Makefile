@@ -10,28 +10,26 @@ TEST_FILE=src/test/scala/org/so/plugin/BroadcastJoinSuite.scala
 
 INPUT_PATH=input/big/
 OUTPUT_PATH=output/big/
-STATS_PATH=output/stats/
 
 all: build run
 
 build: setup
 	mkdir -p "out/classes/main/resources/"
-	mkdir -p ${STATS_PATH}
 	${SCALA_BIN_PATH}scalac -cp "./${LIB_PATH}/*" \
 		-d out/classes \
 		src/main/scala/org/neu/so/bj/*.scala \
 		src/test/scala/org/neu/so/bj/util/*.scala \
 		src/test/scala/org/neu/so/bj/*.scala
 	jar cvf ${JAR_NAME} \
-		-C out/classes/ .
+		-C ${CLASSES_PATH} .
 
 build-jar: setup
 	mkdir -p "out/classes/main/resources/"
 	${SCALA_BIN_PATH}scalac -cp "./${LIB_PATH}/*" \
     		-d out/classes \
     		src/main/scala/org/neu/so/bj/*.scala
-	jar cvf ${JAR_NAME} \
-		-C out/classes/ .
+	jar cf ${JAR_NAME} \
+		-C ${CLASSES_PATH} .
 
 run:
 	${SPARK_PATH}spark-submit \
@@ -53,4 +51,3 @@ setup: clean
 clean:
 	rm -rf ${OUT_ROOT}
 	rm -rf ${OUTPUT_PATH}
-	rm -rf ${STATS_PATH}
