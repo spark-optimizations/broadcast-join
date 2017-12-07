@@ -15,7 +15,7 @@ object BroadcastJoinSuite {
   val sc: SparkContext = SparkUtil.createSparkContext(ss)
 
   def main(args: Array[ String ]): Unit = {
-    val testData = fetchTestData(args(0) + "similar_artists.csv")
+    val testData = fetchTestData(args(0) + "similar_artists.csv.gz")
     val smallRDD = extractSmallRDD(testData)
     broadcastJoinExec(testData, smallRDD, args(1) + "bj_output", "bj_output")
     dataframeJoinExec(testData, smallRDD, args(1) + "df_output")
