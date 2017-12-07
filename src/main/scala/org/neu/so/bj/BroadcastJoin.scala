@@ -10,7 +10,8 @@ import scala.reflect.ClassTag
 /**
   * @author Tirthraj
   */
-class BroadcastJoin(sc: SparkContext) extends config {
+class BroadcastJoin(sc: SparkContext) {
+  var autoBroadcastJoinThreshold: Long = config.autoBroadcastJoinThreshold
   var statsPath: String = ""
   /**
     * Return an RDD containing all pairs of elements with matching keys in `left` and `right`. Each
@@ -44,6 +45,7 @@ class BroadcastJoin(sc: SparkContext) extends config {
                                                                rddSizeEstimator: RDDSizeEstimator): Boolean = {
     val startTime = System.currentTimeMillis
     val size = rddSizeEstimator.estimate(rdd)
+    println(size)
     dumpStat((System.currentTimeMillis - startTime) / 1000f)
     size <= autoBroadcastJoinThreshold
   }
