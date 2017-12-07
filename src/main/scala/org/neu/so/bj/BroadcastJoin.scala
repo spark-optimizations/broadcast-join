@@ -39,6 +39,8 @@ class BroadcastJoin(sc: SparkContext) {
 
   /**
     * Return true iff estimated size of `rdd` is less than or equal to `autoBroadcastJoinThreshold`.
+    * User can also give their custom `RDDSizeEstimator` which implements `estimate` method.
+    *
     * Referenced from: https://gist.github.com/mkolod/0662ae3e480e0a8eceda
     */
   private[ this ] def canBroadcast[ K: ClassTag, E: ClassTag ](rdd: RDD[ (K, E) ],
@@ -81,6 +83,9 @@ class BroadcastJoin(sc: SparkContext) {
       }
   }
 
+  /**
+    * Dump statistics `s` to `statsPath` with a new line at the end.
+    */
   private[ this ] def dumpStat(s: Float): Unit = {
     if (!statsPath.equals("")) {
       val pw = new PrintWriter(new FileWriter(statsPath, true))
