@@ -4,7 +4,7 @@ ARTIFACTS_PATH=${OUT_ROOT}/artifacts
 
 JAR_NAME=${ARTIFACTS_PATH}/broadcast-join.jar
 RESOURCES_PATH=src/main/resources
-LIB_PATH=lib
+LIB_PATH=lib-min
 
 TEST_FILE=src/test/scala/org/so/plugin/BroadcastJoinSuite.scala
 
